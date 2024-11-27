@@ -19,3 +19,20 @@ Este proyecto es una aplicación web interactiva desarrollada con React y Next.j
 - **Tesseract.js**
 
 Este proyecto es ideal para demostrar la integración de OCR en aplicaciones web y puede servir como base para aplicaciones más avanzadas, como escaneo de documentos o validación de datos.
+
+---
+
+## Cómo empezar
+
+### Requisitos previos
+
+Asegúrate de tener instalado [Node.js](https://nodejs.org/) en tu sistema.
+
+### Instalación
+
+Primero, clona este repositorio e instala las dependencias:
+
+```bash
+git clone https://github.com/tu-usuario/tu-repositorio.git
+cd tu-repositorio
+npm install
