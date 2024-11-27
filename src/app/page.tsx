@@ -1,11 +1,14 @@
 'use client'
 import { useEffect, useRef, useState } from "react";
+import Tesseract from "tesseract.js";
 
 export default function Home() {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const [hasPermission, setHasPermission] = useState(false);
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [isPhotoCaptured, setIsPhotoCaptured] = useState(false);
+  const [recognizedText, setRecognizedText] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   useEffect(() => {
     askForCameraPermission();
@@ -32,9 +35,9 @@ export default function Home() {
     if (videoRef.current && videoRef.current.srcObject) {
       const stream = videoRef.current.srcObject as MediaStream;
       stream.getTracks().forEach((track) => {
-        track.stop(); // Detiene cada track (video y audio) del stream
+        track.stop();
       });
-      videoRef.current.srcObject = null; // Limpia la referencia al stream
+      videoRef.current.srcObject = null;
     }
   };
 
@@ -54,7 +57,7 @@ export default function Home() {
         const imageDataUrl = canvas.toDataURL("image/png");
         setCapturedImage(imageDataUrl);
         setIsPhotoCaptured(true);
-        stopCamera(); // Detiene la cámara después de capturar la foto
+        stopCamera();
       }
     }
   };
@@ -62,7 +65,28 @@ export default function Home() {
   const retakePhoto = async () => {
     setCapturedImage(null);
     setIsPhotoCaptured(false);
+    setRecognizedText(null);
     await askForCameraPermission();
+  };
+
+  const recognizeText = async () => {
+    if (!capturedImage) return;
+
+    setIsProcessing(true);
+    setRecognizedText(null);
+
+    try {
+      const { data } = await Tesseract.recognize(capturedImage, "spa", {
+        logger: (info) => console.log(info), 
+        
+      });
+      setRecognizedText(data.text);
+    } catch (error) {
+      console.error("Error recognizing text:", error);
+      setRecognizedText("No se pudo reconocer texto en la imagen.");
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   return (
@@ -86,29 +110,40 @@ export default function Home() {
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           {isPhotoCaptured ? (
             <>
-            <button
-              onClick={retakePhoto}
-              className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-[#e2e8f0]  text-black gap-2 hover:bg-[#cbd5e1] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            >
-              Tomar otra foto
-            </button>
-            <button
-              onClick={retakePhoto}
-              className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-[#e2e8f0]  text-black gap-2 hover:bg-[#cbd5e1] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            >
-              leer Id
-            </button>            
+              <button
+                onClick={retakePhoto}
+                className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-[#e2e8f0] text-black gap-2 hover:bg-[#cbd5e1] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+              >
+                Tomar otra foto
+              </button>
+              <button
+                onClick={recognizeText}
+                className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-[#e2e8f0] text-black gap-2 hover:bg-[#cbd5e1] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+                disabled={isProcessing}
+              >
+                {isProcessing ? "Procesando..." : "Leer ID"}
+              </button>
             </>
-            
           ) : (
             <button
               onClick={capturePhoto}
-              className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-[#e2e8f0]  text-black gap-2 hover:bg-[#cbd5e1] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
+              className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-[#e2e8f0] text-black gap-2 hover:bg-[#cbd5e1] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
             >
               Capturar Foto
             </button>
           )}
         </div>
+
+        {recognizedText && (
+          <>
+          <h3 className="text-lg font-bold mb-2">Texto Reconocido:</h3>
+          <div className="mt-4 p-4 bg-gray-100 rounded-lg shadow-md w-full max-w-xl">
+            
+            <p className="text-sm text-gray-800">{recognizedText}</p>
+          </div>
+          </>
+        
+        )}
       </main>
     </div>
   );
