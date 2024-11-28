@@ -200,10 +200,14 @@ export default function Home() {
         </div>
 
         {recognizedText && (
-          <div className="mt-4 p-4 bg-gray-100 rounded-lg shadow-md w-full max-w-xl">
-            <h3 className="text-lg font-bold mb-2">Texto Reconocido:</h3>
+          <>
+          <h3 className="text-lg font-bold ">Texto Reconocido:</h3>
+          <div className=" p-4 bg-gray-100 rounded-lg shadow-md w-full max-w-xl">
+           
             <p className="text-sm text-gray-800">{recognizedText}</p>
           </div>
+          </>
+           
         )}
       </main>
     </div>
