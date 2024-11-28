@@ -143,7 +143,7 @@ export default function Home() {
           <select
             value={selectedCameraId || ""}
             onChange={(e) => setSelectedCameraId(e.target.value)}
-            className="rounded-md border p-2"
+            className="rounded-md border p-2 bg-gray-800"
           >
             {availableCameras.map((camera) => (
               <option key={camera.deviceId} value={camera.deviceId}>
@@ -154,18 +154,23 @@ export default function Home() {
         )}
 
         {isPhotoCaptured ? (
+          <div className="w-full h-64 sm:h-80 rounded-lg border border-gray-400 overflow-hidden">
           <img
             src={capturedImage!}
             alt="Foto capturada"
-            className="rounded-lg border border-gray-400 w-full h-auto"
+        
+              className="w-full h-full object-cover object-center rounded-lg border border-gray-400"
           />
+          </div>
         ) : (
+          <div className="w-full h-64 sm:h-80 rounded-lg border border-gray-400 overflow-hidden">
           <video
             ref={videoRef}
-            className="aspect-video rounded-md w-full object-cover"
+              className="w-full h-full object-cover object-center rounded-lg border border-gray-400"
             autoPlay
             playsInline
           />
+          </div>
         )}
 
         <div className="flex gap-4 items-center flex-col sm:flex-row">
