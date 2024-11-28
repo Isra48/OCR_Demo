@@ -135,7 +135,7 @@ export default function Home() {
         ) : (
           <video
             ref={videoRef}
-            className="aspect-video rounded-md w-full"
+            className="aspect-video rounded-md w-full object-cover"
             autoPlay
             playsInline
           />
