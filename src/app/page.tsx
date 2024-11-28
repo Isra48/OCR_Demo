@@ -12,30 +12,43 @@ export default function Home() {
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
 
-  // Solicita permisos de la cámara y configura la primera cámara disponible
   useEffect(() => {
-    askForCameraPermission();
+    checkCameraPermission();
   }, []);
 
-  // Obtiene las cámaras disponibles una vez que se tienen permisos
   useEffect(() => {
     if (hasPermission) {
       getAvailableCameras();
     }
   }, [hasPermission]);
 
-  // Reinicia la cámara cuando cambia la cámara seleccionada
   useEffect(() => {
     if (selectedCameraId) {
       startCamera();
     }
   }, [selectedCameraId]);
 
+  const checkCameraPermission = async () => {
+    try {
+      const permissionStatus = await navigator.permissions.query({ name: "camera" as PermissionName });
+      if (permissionStatus.state === "granted") {
+        setHasPermission(true);
+        startCamera();
+      } else if (permissionStatus.state === "prompt") {
+        askForCameraPermission();
+      } else {
+        alert("Permiso para usar la cámara denegado. Por favor, actívalo en la configuración.");
+      }
+    } catch (error) {
+      console.error("Error al verificar permisos:", error);
+      askForCameraPermission();
+    }
+  };
+
   const askForCameraPermission = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setHasPermission(true);
-      stopCamera();
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -43,9 +56,7 @@ export default function Home() {
     } catch (error) {
       console.error("Camera permission denied:", error);
       setHasPermission(false);
-      alert(
-        "Parece que no has otorgado permisos para acceder a tu cámara. Por favor, verifica los permisos en la configuración del navegador y vuelve a intentarlo."
-      );
+      alert("Parece que no has otorgado permisos para acceder a tu cámara. Por favor, verifica los permisos en la configuración del navegador y vuelve a intentarlo.");
     }
   };
 
@@ -55,10 +66,10 @@ export default function Home() {
       const videoDevices = devices.filter((device) => device.kind === "videoinput");
       setAvailableCameras(videoDevices);
       if (videoDevices.length > 0) {
-        setSelectedCameraId(videoDevices[0].deviceId); // Selecciona la primera cámara por defecto
+        setSelectedCameraId(videoDevices[0].deviceId);
       }
     } catch (error) {
-      console.error("Error getting available cameras:", error);
+      console.error("Error al obtener cámaras:", error);
     }
   };
 
@@ -69,13 +80,12 @@ export default function Home() {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: { deviceId: { exact: selectedCameraId } },
       });
-      stopCamera();
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
     } catch (error) {
-      console.error("Error starting selected camera:", error);
+      console.error("Error al iniciar la cámara seleccionada:", error);
     }
   };
 
@@ -143,7 +153,7 @@ export default function Home() {
           <select
             value={selectedCameraId || ""}
             onChange={(e) => setSelectedCameraId(e.target.value)}
-            className="rounded-md border p-2 bg-gray-800"
+            className="rounded-md border p-2 bg-gray-800 text-white"
           >
             {availableCameras.map((camera) => (
               <option key={camera.deviceId} value={camera.deviceId}>
@@ -153,25 +163,22 @@ export default function Home() {
           </select>
         )}
 
-        {isPhotoCaptured ? (
-          <div className="w-full aspect-video sm:aspect-[21/9] rounded-lg border border-gray-400 overflow-hidden">
-          <img
-            src={capturedImage!}
-            alt="Foto capturada"
-        
-              className="w-full h-full object-cover object-center rounded-lg border border-gray-400"
-          />
-          </div>
-        ) : (
-          <div className="w-full aspect-video sm:aspect-[21/9] border border-gray-400 overflow-hidden">
-          <video
-            ref={videoRef}
-              className="w-full h-full object-cover object-center rounded-lg border border-gray-400"
-            autoPlay
-            playsInline
-          />
-          </div>
-        )}
+        <div className="w-full aspect-video sm:aspect-[21/9] rounded-lg border border-gray-400 overflow-hidden">
+          {isPhotoCaptured ? (
+            <img
+              src={capturedImage!}
+              alt="Foto capturada"
+              className="w-full h-full object-cover object-center"
+            />
+          ) : (
+            <video
+              ref={videoRef}
+              className="w-full h-full object-cover object-center"
+              autoPlay
+              playsInline
+            />
+          )}
+        </div>
 
         <div className="flex gap-4 items-center flex-col sm:flex-row">
           {isPhotoCaptured ? (
