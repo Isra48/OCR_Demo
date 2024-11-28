@@ -23,25 +23,25 @@ export default function Home() {
   }, [hasPermission]);
 
   useEffect(() => {
-    if (selectedCameraId) {
-      startCamera();
+    if (selectedCameraId && hasPermission) {
+      startCamera(selectedCameraId);
     }
-  }, [selectedCameraId]);
+  }, [selectedCameraId, hasPermission]);
 
   const checkCameraPermission = async () => {
     try {
       const permissionStatus = await navigator.permissions.query({ name: "camera" as PermissionName });
       if (permissionStatus.state === "granted") {
         setHasPermission(true);
-        startCamera();
+        await getAvailableCameras();
       } else if (permissionStatus.state === "prompt") {
-        askForCameraPermission();
+        await askForCameraPermission();
       } else {
         alert("Permiso para usar la cámara denegado. Por favor, actívalo en la configuración.");
       }
     } catch (error) {
       console.error("Error al verificar permisos:", error);
-      askForCameraPermission();
+      await askForCameraPermission();
     }
   };
 
@@ -49,14 +49,11 @@ export default function Home() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setHasPermission(true);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-      }
+      stream.getTracks().forEach((track) => track.stop());
+      await getAvailableCameras();
     } catch (error) {
-      console.error("Camera permission denied:", error);
-      setHasPermission(false);
-      alert("Parece que no has otorgado permisos para acceder a tu cámara. Por favor, verifica los permisos en la configuración del navegador y vuelve a intentarlo.");
+      console.error("Error al solicitar permisos:", error);
+      alert("Parece que no has otorgado permisos para acceder a tu cámara. Por favor, verifica los permisos en la configuración del navegador.");
     }
   };
 
@@ -65,7 +62,7 @@ export default function Home() {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const videoDevices = devices.filter((device) => device.kind === "videoinput");
       setAvailableCameras(videoDevices);
-      if (videoDevices.length > 0) {
+      if (videoDevices.length > 0 && !selectedCameraId) {
         setSelectedCameraId(videoDevices[0].deviceId);
       }
     } catch (error) {
@@ -73,12 +70,10 @@ export default function Home() {
     }
   };
 
-  const startCamera = async () => {
-    if (!selectedCameraId) return;
-
+  const startCamera = async (deviceId: string) => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { deviceId: { exact: selectedCameraId } },
+        video: { deviceId: { exact: deviceId } },
       });
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
@@ -86,6 +81,7 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Error al iniciar la cámara seleccionada:", error);
+      alert("No se pudo iniciar la cámara seleccionada. Por favor, inténtalo nuevamente.");
     }
   };
 
@@ -99,32 +95,28 @@ export default function Home() {
     }
   };
 
-  const capturePhoto = async () => {
-    if (!hasPermission) {
-      await askForCameraPermission();
-      return;
-    }
+  const capturePhoto = () => {
+    if (!videoRef.current) return;
 
-    if (videoRef.current) {
-      const canvas = document.createElement("canvas");
-      canvas.width = videoRef.current.videoWidth;
-      canvas.height = videoRef.current.videoHeight;
-      const context = canvas.getContext("2d");
-      if (context) {
-        context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-        const imageDataUrl = canvas.toDataURL("image/png");
-        setCapturedImage(imageDataUrl);
-        setIsPhotoCaptured(true);
-        stopCamera();
-      }
+    const canvas = document.createElement("canvas");
+    canvas.width = videoRef.current.videoWidth;
+    canvas.height = videoRef.current.videoHeight;
+    const context = canvas.getContext("2d");
+
+    if (context) {
+      context.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+      const imageDataUrl = canvas.toDataURL("image/png");
+      setCapturedImage(imageDataUrl);
+      setIsPhotoCaptured(true);
+      stopCamera();
     }
   };
 
-  const retakePhoto = async () => {
+  const retakePhoto = () => {
     setCapturedImage(null);
     setIsPhotoCaptured(false);
     setRecognizedText(null);
-    await askForCameraPermission();
+    if (selectedCameraId) startCamera(selectedCameraId);
   };
 
   const recognizeText = async () => {
@@ -139,7 +131,7 @@ export default function Home() {
       });
       setRecognizedText(data.text);
     } catch (error) {
-      console.error("Error recognizing text:", error);
+      console.error("Error al reconocer texto:", error);
       setRecognizedText("No se pudo reconocer texto en la imagen.");
     } finally {
       setIsProcessing(false);
@@ -191,8 +183,8 @@ export default function Home() {
               </button>
               <button
                 onClick={recognizeText}
-                className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-[#e2e8f0] text-black gap-2 hover:bg-[#cbd5e1] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
                 disabled={isProcessing}
+                className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-[#e2e8f0] text-black gap-2 hover:bg-[#cbd5e1] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
               >
                 {isProcessing ? "Procesando..." : "Leer ID"}
               </button>
@@ -208,12 +200,10 @@ export default function Home() {
         </div>
 
         {recognizedText && (
-          <>
+          <div className="mt-4 p-4 bg-gray-100 rounded-lg shadow-md w-full max-w-xl">
             <h3 className="text-lg font-bold mb-2">Texto Reconocido:</h3>
-            <div className="mt-4 p-4 bg-gray-100 rounded-lg shadow-md w-full max-w-xl">
-              <p className="text-sm text-gray-800">{recognizedText}</p>
-            </div>
-          </>
+            <p className="text-sm text-gray-800">{recognizedText}</p>
+          </div>
         )}
       </main>
     </div>
