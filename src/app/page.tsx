@@ -12,20 +12,30 @@ export default function Home() {
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraId, setSelectedCameraId] = useState<string | null>(null);
 
+  // Solicita permisos de la cámara y configura la primera cámara disponible
   useEffect(() => {
     askForCameraPermission();
   }, []);
 
+  // Obtiene las cámaras disponibles una vez que se tienen permisos
   useEffect(() => {
     if (hasPermission) {
       getAvailableCameras();
     }
   }, [hasPermission]);
 
+  // Reinicia la cámara cuando cambia la cámara seleccionada
+  useEffect(() => {
+    if (selectedCameraId) {
+      startCamera();
+    }
+  }, [selectedCameraId]);
+
   const askForCameraPermission = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true });
       setHasPermission(true);
+      stopCamera();
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
@@ -49,6 +59,23 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Error getting available cameras:", error);
+    }
+  };
+
+  const startCamera = async () => {
+    if (!selectedCameraId) return;
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: selectedCameraId } },
+      });
+      stopCamera();
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch (error) {
+      console.error("Error starting selected camera:", error);
     }
   };
 
