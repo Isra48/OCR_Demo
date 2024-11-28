@@ -154,7 +154,7 @@ export default function Home() {
         )}
 
         {isPhotoCaptured ? (
-          <div className="w-full h-64 sm:h-80 rounded-lg border border-gray-400 overflow-hidden">
+          <div className="w-full aspect-video sm:aspect-[21/9] rounded-lg border border-gray-400 overflow-hidden">
           <img
             src={capturedImage!}
             alt="Foto capturada"
@@ -163,7 +163,7 @@ export default function Home() {
           />
           </div>
         ) : (
-          <div className="w-full h-64 sm:h-80 rounded-lg border border-gray-400 overflow-hidden">
+          <div className="w-full aspect-video sm:aspect-[21/9] border border-gray-400 overflow-hidden">
           <video
             ref={videoRef}
               className="w-full h-full object-cover object-center rounded-lg border border-gray-400"
